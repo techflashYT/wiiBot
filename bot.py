@@ -71,15 +71,15 @@ async def on_message(message):
         if message.content.startswith("$"):
             shSc = message.content
             shSc = shSc.replace("$", " ")
-            
+
             # Check if banned
             # for word in bannedCmds:
             #    if word in message.content:
             #        await message.channel.send("Command "+word+" is banned")
             #        return
             try:
-                shRe = subprocess.run("su -c '"+shSc+"' discord", shell=True, capture_output=True, text=True)
-                await message.channel.send("```\n"+shRe.stdout+shRe.stderr+"\n```\n")
+                shRe = subprocess.run("su -c '"+shSc+"' discord", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                await message.channel.send("```\n"+shRe.stdout+"\n```\n")
             except Exception as e:
                 await message.channel.send("```\n"+f"We fucked up: {e}"+"\n```")
 # Get token
