@@ -79,9 +79,11 @@ async def on_message(message):
             #        return
             try:
                 myMsg = await message.reply("Please wait...")
+                f = open("/tmp/wiiBot_cmd", "w")
+                f.write(shSc)
+                f.close()
 
-                shRe = subprocess.run("sudo su -c 'bash -c \"{}\"' discord".format(shSc.replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')), shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
+                shRe = subprocess.run("su -c 'bash /tmp/wiiBot_cmd' discord", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                 if len(shRe.stdout) > 3970:
                     await myMsg.edit(content="**Warning**: Command output too much text, truncating\n```ansi\n"+shRe.stdout[0:1900]+"\n```\n")
                     await myMsg.reply("```ansi\n"+shRe.stdout[1901:3800]+"\n```\n")
