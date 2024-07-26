@@ -10,6 +10,32 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
+# Banned commands list
+bannedCmds = [
+    "xbps",
+    "cat",
+    "echo",
+    "$(",
+    "rm",
+    "wget",
+    "sh",
+    "bash",
+    "reboot",
+    "power",
+    "printf",
+    "python",
+    ">>",
+    "<<",
+    "||",
+    "touch",
+    "mk",
+    "swapoff",
+    "init",
+    "write",
+    "dd",
+    "head"
+]
+
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
@@ -45,8 +71,17 @@ async def on_message(message):
         if message.content.startswith("$"):
             shSc = message.content
             shSc = shSc.replace("$", " ")
-            shRe = subprocess.run(shSc, shell=True, capture_output=True, text=True)
-            await message.channel.send("```\n"+shRe.stdout+"\n```")
+            
+            # Check if banned
+            # for word in bannedCmds:
+            #    if word in message.content:
+            #        await message.channel.send("Command "+word+" is banned")
+            #        return
+            try:
+                shRe = subprocess.run("su -c '"+shSc+"' discord", shell=True, capture_output=True, text=True)
+                await message.channel.send("```\n"+shRe.stdout+shRe.stderr+"\n```\n")
+            except Exception as e:
+                await message.channel.send("```\n"+f"We fucked up: {e}"+"\n```")
 # Get token
 tok = ""
 with open("token.txt", "r") as tf:
