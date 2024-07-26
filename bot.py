@@ -1,6 +1,7 @@
 # This example requires the 'message_content' intent.
 
 import discord
+import subprocess
 import cpuinfo
 import neofetch
 
@@ -30,11 +31,22 @@ async def on_message(message):
 
         await message.channel.send("```\n"+finished+"\n```")
 
+    elif message.content.startswith("$ps"):
+        res = subprocess.run(["ps"], shell=True, capture_output=True, text=True)
+        await message.channel.send("```ansi\n"+res.stdout+"\n```")
+    elif message.content.startswith("$free"):
+        res = subprocess.run("free -h", shell=True, capture_output=True, text=True)
+        await message.channel.send("```\n"+res.stdout+"\n```")
     elif message.content.startswith("$neofetch"):
         mymsg = await message.channel.send("Please wait, neofetch is running...");
         res = neofetch.go()
         await mymsg.edit(content="```ansi\n"+res+"\n```")
-
+    else:
+        if message.content.startswith("$"):
+            shSc = message.content
+            shSc = shSc.replace("$", " ")
+            shRe = subprocess.run(shSc, shell=True, capture_output=True, text=True)
+            await message.channel.send("```\n"+shRe.stdout+"\n```")
 # Get token
 tok = ""
 with open("token.txt", "r") as tf:
