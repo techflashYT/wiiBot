@@ -80,7 +80,7 @@ async def on_message(message):
             try:
                 myMsg = await message.reply("Please wait...")
 
-                shRe = subprocess.run("su -c '"+shSc+"' discord", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                shRe = subprocess.run("sudo su -c 'bash -c \"{}\"' discord".format(shSc.replace('"', '\\"').replace('$', '\\$').replace('`', '\\`')), shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
                 if len(shRe.stdout) > 3970:
                     await myMsg.edit(content="**Warning**: Command output too much text, truncating\n```ansi\n"+shRe.stdout[0:1900]+"\n```\n")
