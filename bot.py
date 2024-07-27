@@ -92,6 +92,8 @@ async def on_message(message):
             elif len(shRe.stdout) > 1970:
                 await myMsg.edit(content="```ansi\n"+shRe.stdout[0:1900]+"\n```\n")
                 await myMsg.reply("```ansi\n"+shRe.stdout[1901:-1]+"\n```\n")
+            elif len(shRe.stdout) == 0:
+                await myMsg.edit(content="```ansi\n[command gave no output]\n```\n")
             else:
                 await myMsg.edit(content="```ansi\n"+shRe.stdout+"\n```\n")
 
