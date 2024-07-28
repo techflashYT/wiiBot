@@ -4,6 +4,9 @@ import subprocess
 import cpuinfo
 import neofetch
 import re
+import string
+import os
+import random
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -82,6 +85,10 @@ async def handle_neofetch_command(message):
 async def handle_custom_command(message):
     shSc = ""
     shTo = 45
+
+    # Make random file name
+    shFile = "/tmp/wiiBot_cmd_" + ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+
     if "<WIIBOTRUN>" in message.content:
         shSc = message.content.split("<WIIBOTRUN>")[1]
         shTo = re.sub(r'[^0-9]', '', message.content.split("<WIIBOTRUN>")[0])
@@ -92,16 +99,18 @@ async def handle_custom_command(message):
     shSc = shSc[1:]
     try:
         myMsg = await message.reply("Please wait...")
-        with open("/tmp/wiiBot_cmd", "w") as f:
+        with open(shFile, "w") as f:
             f.write(shSc)
 
         print(f"Running to: {shTo}")
-        shCmd = f"su -c 'timeout {shTo} bash /tmp/wiiBot_cmd' discord"
+        shCmd = f"su -c 'timeout {shTo} bash {shFile}' discord"
         print(shCmd)
 
         loop = asyncio.get_event_loop()
         shRe = await loop.run_in_executor(None, lambda: subprocess.run(shCmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
         
+        # Delete the generated shell script
+        os.remove(shFile)
         if len(shRe.stdout) > 3970:
             await myMsg.edit(content="**Warning**: Command output too much text, truncating\n```ansi\n"+shRe.stdout[0:1900]+"\n```\n")
             await myMsg.reply("```ansi\n"+shRe.stdout[1901:3800]+"\n```\n")
