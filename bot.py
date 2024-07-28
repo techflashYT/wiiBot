@@ -10,6 +10,20 @@ intents.message_content = True
 
 client = discord.Client(intents=intents)
 
+helpTxt = """# Wii Bot Help
+This bot is ran off a real Nintendo Wii running void-linux.
+To run a command, type '$' followed by the command.
+If your app takes too long to execute, you can set a custom timeout by doing '$[t=30]<WIIBOTRUN>$' followed by the command and T is the timeout.
+
+# DO NOT
+ - Don't hammer the internet (i.e. transfer more than 1MB or so, the Wii's WiFi is incredibly poor)
+ - Abuse the timeout.
+ - Use too much disk space.
+ - Do illegal things.
+ - Exploit local servers.
+ - Use a massive amount of CPU or RAM
+"""
+
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
@@ -25,6 +39,9 @@ async def on_message(message):
     if message.content.startswith('$hello'):
         print("Ran Hello.")
         await message.reply('Hello!')
+
+    elif message.content.startswith('$help'):
+        await message.reply(helpTxt)
 
     elif message.content.startswith("$specs"):
         finished = ""
