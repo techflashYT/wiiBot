@@ -4,6 +4,7 @@ import discord
 import subprocess
 import cpuinfo
 import neofetch
+import re
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -71,7 +72,15 @@ async def on_message(message):
         res = neofetch.go()
         await mymsg.edit(content="```ansi\n"+res+"\n```")
     else:
-        shSc = message.content
+        shSc = ""
+        shTo = 45
+        if "<WIIBOTRUN>" in message.content:
+            shSc = message.content.split("<WIIBOTRUN>")[1]
+            shTo = re.sub(r'[^0-9]', '', message.content.split("<WIIBOTRUN>")[0])
+            print(f"TO: {shTo}")
+        else:
+            shSc = message.content
+
         shSc = shSc[1:]
 
         # Check if banned
@@ -85,7 +94,10 @@ async def on_message(message):
             f.write(shSc)
             f.close()
 
-            shRe = subprocess.run("su -c 'bash /tmp/wiiBot_cmd' discord", shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            print(f"Running to: {shTo}")
+            shCmd = "su -c 'timeout "+str(shTo)+" bash /tmp/wiiBot_cmd' discord"
+            print(shCmd)
+            shRe = subprocess.run(shCmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             if len(shRe.stdout) > 3970:
                 await myMsg.edit(content="**Warning**: Command output too much text, truncating\n```ansi\n"+shRe.stdout[0:1900]+"\n```\n")
                 await myMsg.reply("```ansi\n"+shRe.stdout[1901:3800]+"\n```\n")

@@ -4,9 +4,10 @@ import re
 firstInfoLine = True
 firstLogoLine = True
 
+distro = "void"
 
 def run_neofetch_logo():
-    result = subprocess.run(['neofetch', '-L'], capture_output=True, text=True)
+    result = subprocess.run(['neofetch', '-L', "--ascii_distro", f"{distro}"], capture_output=True, text=True)
     return result.stdout
 
 
