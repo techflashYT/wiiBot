@@ -6,7 +6,9 @@ import neofetch
 import re
 import string
 import os
+import io
 import random
+from time import time
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -86,6 +88,36 @@ async def handle_custom_command(message):
     shSc = ""
     shTo = 45
 
+    # warnings bitmask
+    WARN_STILLRUNNING = 1
+    WARN_TOOLONG = 2
+    # WARN_SOMETHING = 4
+
+    # warnings strings
+    WARN_STR = [
+        "Command is still running!  Reply to this message to provide input.",
+        "Command output too much text, outputting to a file instead."
+    ]
+
+    warnings = 0
+    warningsStr = ""
+
+    def update_warnings(warning_bit, state):
+        # update bitmask
+        nonlocal warnings, warningsStr
+        if state:
+            warnings |= warning_bit
+        else:
+            warnings &= ~warning_bit
+
+        warningsStr = ""
+        # update warningsStr
+        for i in range(2):
+            if warnings & (1 << i):
+                warningsStr += f"**Warning**: {WARN_STR[i]}\n"
+
+
+
     # Make random file name
     shFile = "/tmp/wiiBot_cmd_" + ''.join(random.choices(string.ascii_letters + string.digits, k=16))
 
@@ -105,25 +137,68 @@ async def handle_custom_command(message):
         print(f"Running to: {shTo}")
         shCmd = f"su -c 'cd ~; timeout {shTo} bash {shFile}' discord"
         print(shCmd)
+        update_warnings(WARN_STILLRUNNING, True)
 
-        loop = asyncio.get_event_loop()
-        shRe = await loop.run_in_executor(None, lambda: subprocess.run(shCmd, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT))
-        
-        # Delete the generated shell script
+        proc = await asyncio.create_subprocess_shell(
+            shCmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT
+            stdin=asyncio.subprocess.PIPE,
+
+        output = []
+        batch_lines = []
+        last_send_time = time()
+        no_file_yet = True
+
+        async def update_message():
+            nonlocal last_send_time, no_file_yet
+            while proc.returncode is None:
+                await asyncio.sleep(0.125)
+                if batch_lines:
+                    combined_output = "".join(output)
+                    if len(combined_output) < 2000:
+                        await myMsg.edit(content=warningsStr + "```ansi\n" + combined_output + "\n```")
+                    elif no_file_yet or time() - last_send_time > 5:
+                        file = discord.File(io.BytesIO(combined_output.encode()), filename="output.txt")
+
+                        await myMsg.remove_attachments(myMsg.attachments)
+                        await myMsg.add_files(file)
+
+                        update_warnings(WARN_TOOLONG, True)
+                        await myMsg.edit(content=warningsStr)
+                        last_send_time = time()
+                        no_file_yet = False
+                    batch_lines.clear()
+
+        asyncio.create_task(update_message())
+
+        async for line in proc.stdout:
+            line = line.decode()  # Decode bytes to string
+            batch_lines.append(line)
+            output.append(line)
+
+        await proc.wait()
+        update_warnings(WARN_STILLRUNNING, False)
+        print("process finished")
+
         os.remove(shFile)
-        if len(shRe.stdout) > 3970:
-            await myMsg.edit(content="**Warning**: Command output too much text, truncating\n```ansi\n"+shRe.stdout[0:1900]+"\n```\n")
-            await myMsg.reply("```ansi\n"+shRe.stdout[1901:3800]+"\n```\n")
-        elif len(shRe.stdout) > 1970:
-            await myMsg.edit(content="```ansi\n"+shRe.stdout[0:1900]+"\n```\n")
-            await myMsg.reply("```ansi\n"+shRe.stdout[1901:-1]+"\n```\n")
-        elif len(shRe.stdout) == 0:
-            await myMsg.edit(content="```ansi\n[command gave no output]\n```\n")
+
+        # Finalize output and remove still running warning
+        combined_output = "".join(output)
+        if len(combined_output) + len(warningsStr) + len("```ansi\n\n```") < 2000:
+            await myMsg.edit(content=warningsStr + "```ansi\n" + combined_output + "\n```")
         else:
-            await myMsg.edit(content="```ansi\n"+shRe.stdout+"\n```\n")
+            file = discord.File(io.BytesIO(combined_output.encode()), filename="output.txt")
+
+            await myMsg.remove_attachments(myMsg.attachments)
+            await myMsg.add_files(file)
+
+            update_warnings(WARN_TOOLONG, True)
+            await myMsg.edit(content=warningsStr)
+            last_send_time = time()
 
     except Exception as e:
-        content = "```\n"+f"We fucked up: {e}"+"\n```"
+        content = "```\n" + f"We fucked up: {e}" + "\n```"
         if myMsg:
             await myMsg.edit(content=content)
         else:
