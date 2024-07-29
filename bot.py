@@ -9,6 +9,7 @@ import os
 import io
 import random
 from time import time
+import signal
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -29,6 +30,8 @@ If your app takes too long to execute, you can set a custom timeout by doing '$[
  - Use a massive amount of CPU or RAM
 """
 
+process_dict = {}
+
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
@@ -38,7 +41,8 @@ async def on_message(message):
     if message.author == client.user:
         return
 
-    if not message.content.startswith("$"):
+    if not message.content.startswith("$") and message.reference:
+        await handle_reply_message(message)
         return
 
     if message.content.startswith('$hello'):
@@ -64,6 +68,31 @@ async def on_message(message):
 
     else:
         await handle_custom_command(message)
+
+async def handle_reply_message(message):
+    original_message_id = message.reference.message_id
+    if original_message_id not in process_dict:
+        await message.reply("No running process associated with this message.")
+        return
+    
+    proc, shCmd = process_dict[original_message_id]
+
+    if re.match(r"stdin:\[.*\]", message.content, re.IGNORECASE):
+        text_to_write = re.findall(r"stdin:\[(.*)\]", message.content, re.IGNORECASE)[0]
+        proc.stdin.write(text_to_write.encode())
+        await message.reply(f"Written to stdin: {text_to_write}")
+
+    elif re.match(r"ctrl-c|ctrl\+c|sigint", message.content, re.IGNORECASE):
+        proc.send_signal(signal.SIGINT)
+        await message.reply(f"Sent SIGINT to the process: {shCmd}")
+
+    elif re.match(r"terminate|end", message.content, re.IGNORECASE):
+        proc.terminate()
+        await message.reply(f"Sent SIGTERM to the process: {shCmd}")
+
+    elif re.match(r"kill|die", message.content, re.IGNORECASE):
+        proc.kill()
+        await message.reply(f"Sent SIGKILL to the process: {shCmd}")
 
 async def handle_free_command(message):
     loop = asyncio.get_event_loop()
@@ -108,8 +137,6 @@ async def handle_custom_command(message):
             if warnings & (1 << i):
                 warningsStr += f"**Warning**: {WARN_STR[i]}\n"
 
-
-
     # Make random file name
     shFile = "/tmp/wiiBot_cmd_" + ''.join(random.choices(string.ascii_letters + string.digits, k=16))
 
@@ -137,6 +164,8 @@ async def handle_custom_command(message):
             stderr=asyncio.subprocess.STDOUT,
             stdin=asyncio.subprocess.PIPE
         )
+
+        process_dict[myMsg.id] = (proc, shCmd)
 
         output = []
         batch_lines = []
@@ -174,6 +203,8 @@ async def handle_custom_command(message):
         update_warnings(WARN_STILLRUNNING, False)
         print("process finished")
 
+        del process_dict[myMsg.id]
+
         os.remove(shFile)
 
         # Finalize output and remove still running warning
@@ -203,3 +234,4 @@ with open("token.txt", "r") as tf:
     tok = tf.read()
 
 client.run(tok)
+
