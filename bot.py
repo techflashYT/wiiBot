@@ -103,7 +103,7 @@ async def handle_custom_command(message):
             f.write(shSc)
 
         print(f"Running to: {shTo}")
-        shCmd = f"su -c 'timeout {shTo} bash {shFile}' discord"
+        shCmd = f"su -c 'cd ~; timeout {shTo} bash {shFile}' discord"
         print(shCmd)
 
         loop = asyncio.get_event_loop()
