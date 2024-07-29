@@ -134,8 +134,9 @@ async def handle_custom_command(message):
         proc = await asyncio.create_subprocess_shell(
             shCmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT
-            stdin=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            stdin=asyncio.subprocess.PIPE
+        )
 
         output = []
         batch_lines = []
