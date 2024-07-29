@@ -56,9 +56,6 @@ async def on_message(message):
 
         await message.reply("```\n"+finished+"\n```")
 
-    elif message.content.startswith("$ps"):
-        await handle_ps_command(message)
-
     elif message.content.startswith("$free"):
         await handle_free_command(message)
 
@@ -67,11 +64,6 @@ async def on_message(message):
 
     else:
         await handle_custom_command(message)
-
-async def handle_ps_command(message):
-    loop = asyncio.get_event_loop()
-    res = await loop.run_in_executor(None, lambda: subprocess.run(["ps"], shell=True, capture_output=True, text=True))
-    await message.reply("```ansi\n"+res.stdout+"\n```")
 
 async def handle_free_command(message):
     loop = asyncio.get_event_loop()
