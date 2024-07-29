@@ -10,6 +10,7 @@ import io
 import random
 from time import time
 import signal
+import psutil
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -32,9 +33,11 @@ If your app takes too long to execute, you can set a custom timeout by doing '$[
 
 process_dict = {}
 
+
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
+
 
 @client.event
 async def on_message(message):
@@ -69,12 +72,23 @@ async def on_message(message):
     else:
         await handle_custom_command(message)
 
+
 async def handle_reply_message(message):
+    def kill_proc_tree(pid, including_parent=True):
+        parent = psutil.Process(pid)
+        children = parent.children(recursive=True)
+        for child in children:
+            child.kill()
+        gone, still_alive = psutil.wait_procs(children, timeout=5)
+        if including_parent:
+            parent.kill()
+            parent.wait(5)
+
     original_message_id = message.reference.message_id
     if original_message_id not in process_dict:
         await message.reply("No running process associated with this message.")
         return
-    
+
     proc, shCmd = process_dict[original_message_id]
 
     if re.match(r"stdin:\[.*\]", message.content, re.IGNORECASE):
@@ -91,13 +105,15 @@ async def handle_reply_message(message):
         await message.reply(f"Sent SIGTERM to the process: {shCmd}")
 
     elif re.match(r"kill|die", message.content, re.IGNORECASE):
-        proc.kill()
+        kill_proc_tree(proc.pid)
         await message.reply(f"Sent SIGKILL to the process: {shCmd}")
+
 
 async def handle_free_command(message):
     loop = asyncio.get_event_loop()
     res = await loop.run_in_executor(None, lambda: subprocess.run("free -h", shell=True, capture_output=True, text=True))
     await message.reply("```\n"+res.stdout+"\n```")
+
 
 async def handle_neofetch_command(message):
     mymsg = await message.reply("Please wait, neofetch is running...")
