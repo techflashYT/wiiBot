@@ -75,7 +75,7 @@ async def on_message(message):
     elif message.content.startswith("$neofetch"):
         await handle_neofetch_command(message)
 
-    else:
+    elif message.content.startswith("$"):
         await handle_custom_command(message)
 
 
