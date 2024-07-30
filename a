@@ -97,9 +97,8 @@ async def handle_reply_message(message):
 
     proc, shCmd = process_dict[original_message_id]
 
-    if re.match(r"stdin:.*", message.content, re.IGNORECASE):
-        text_to_write = re.findall(r"stdin:(.*)", message.content, re.IGNORECASE)[0]
-        text_to_write += "\r\n"
+    if re.match(r"stdin:\[.*\]", message.content, re.IGNORECASE):
+        text_to_write = re.findall(r"stdin:\[(.*)\]", message.content, re.IGNORECASE)[0]
         proc.stdin.write(text_to_write.encode())
         await message.reply(f"Written to stdin: {text_to_write}")
 
