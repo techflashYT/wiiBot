@@ -38,7 +38,7 @@ You can send commands to a process after it's running, here's the list:
 """
 
 process_dict = {}
-
+bot_id = "1266130574683148308"
 
 @client.event
 async def on_ready():
@@ -90,11 +90,14 @@ async def handle_reply_message(message):
             parent.kill()
             parent.wait(5)
 
-    # Check if the message is a reply and whether it was directed to the bot
-    if not message.reference or message.reference.message_id not in process_dict:
+    # Check if the message is a reply and if the referenced message is associated with a running process
+    # Also check if the reply was directed to the bot's ID
+    if (not message.reference or
+        message.reference.message_id not in process_dict or
+        message.reference.message_author.id != bot_id):
         await message.reply("No running process associated with this message.")
         return
- 
+    
     original_message_id = message.reference.message_id
     proc, shCmd = process_dict[original_message_id]
 
