@@ -95,7 +95,7 @@ async def handle_reply_message(message):
     if (not message.reference or
         message.reference.message_id not in process_dict or
         message.reference.message_author.id != bot_id):
-        print(message.reference)
+        print(message.reference.message_author)
         await message.reply("No running process associated with this message.")
         return
     
