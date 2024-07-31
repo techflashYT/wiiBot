@@ -90,11 +90,12 @@ async def handle_reply_message(message):
             parent.kill()
             parent.wait(5)
 
-    original_message_id = message.reference.message_id
-    if original_message_id not in process_dict:
+    # Check if the message is a reply and whether it was directed to the bot
+    if not message.reference or message.reference.message_id not in process_dict:
         await message.reply("No running process associated with this message.")
         return
-
+ 
+    original_message_id = message.reference.message_id
     proc, shCmd = process_dict[original_message_id]
 
     if re.match(r"stdin:.*", message.content, re.IGNORECASE):
