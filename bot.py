@@ -2,6 +2,7 @@ import discord
 import asyncio
 import subprocess
 import cpuinfo
+from logfile import analyzeLogFile
 import neofetch
 import re
 import string
@@ -51,6 +52,11 @@ async def on_message(message):
 
     if not message.content.startswith("$") and message.reference:
         await handle_reply_message(message)
+        return
+
+    # maybe installer crash log?
+    if message.attachments:
+        await handle_potential_installer_log(message)
         return
 
     if message.content.startswith('$hello'):
@@ -123,6 +129,58 @@ async def handle_reply_message(message):
     elif re.match(r"kill|die", message.content, re.IGNORECASE):
         kill_proc_tree(proc.pid)
         await message.reply("Sent SIGKILL (\"kill -9\") to the process")
+
+
+async def handle_potential_installer_log(message):
+    attachment = None
+    data_bytes = None
+    data = None
+    for test in message.attachments:
+        if test.filename == "installer_crash.log":
+            attachment = test
+            break
+
+    if attachment is None:
+        # nothing named "installer_crash.log", we don't care.
+        return
+
+    try:
+        data_bytes = await attachment.read()
+    except Exception as e:
+        await message.reply(f"Failed to read attachement: {e}")
+        return
+
+    if data_bytes is None:
+        await message.reply("Failed to read attachement.")
+
+    # is this really an installer log?
+    try:
+        data = data_bytes.decode("utf-8")
+    except Exception as e:
+        await message.reply(f"Failed to decode installer log ({e}).  Are you sure it isn't corrupted?")
+        return
+
+    if data is None:
+        await message.reply("Failed to decode installer log.  Are you sure it isn't corrupted?")
+        return
+
+    # it is valid text, but did it come from the Wii Linux Installer?
+    if not data.startswith('===== Wii Linux Installer Crash start ====='):
+        await message.reply("Valid text file, but doesn't appear to be a valid Wii Linux Installer log file.\r\nAre you sure it isn't corrupted?")
+        return
+
+    # Valid installer log.  Alright, let's start analyzing.
+    reply = await message.reply("Please wait, analyzing your log file")
+
+
+    try:
+        replyText = await analyzeLogFile(data)
+    except Exception as e:
+        await reply.edit(content=f"Analyzing log file failed: {e}")
+        return
+
+
+    await reply.edit(content=replyText)
 
 
 async def handle_free_command(message):
