@@ -268,7 +268,9 @@ async def handle_custom_command(message):
                 await asyncio.sleep(0.125)
                 if batch_lines:
                     combined_output = "".join(output)
-                    if len(combined_output) < 2000:
+                    if len(combined_output) == 0 or combined_output.isspace():
+                        await myMsg.edit(content=warningsStr + "```\n[No output]\n```")
+                    elif len(combined_output) < 2000:
                         await myMsg.edit(content=warningsStr + "```ansi\n" + combined_output + "\n```")
                     elif no_file_yet or time() - last_send_time > 5:
                         file = discord.File(io.BytesIO(combined_output.encode()), filename="output.txt")
@@ -299,7 +301,9 @@ async def handle_custom_command(message):
 
         # Finalize output and remove still running warning
         combined_output = "".join(output)
-        if len(combined_output) + len(warningsStr) + len("```ansi\n\n```") < 2000:
+        if len(combined_output) == 0 or combined_output.isspace():
+            await myMsg.edit(content=warningsStr + "```\n[No output]\n```")
+        elif len(combined_output) + len(warningsStr) + len("```ansi\n\n```") < 2000:
             await myMsg.edit(content=warningsStr + "```ansi\n" + combined_output + "\n```")
         else:
             file = discord.File(io.BytesIO(combined_output.encode()), filename="output.txt")
