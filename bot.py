@@ -98,14 +98,18 @@ async def handle_reply_message(message):
     # Check if the message is a reply and if the referenced message is associated with a running process
     # Also check if the reply was directed to the bot's ID
 
-    if (message.reference and message.reference.resolved and
+    if not message.reference:
+        # bad reply, or (likely) a poll finished
+        return
+
+    if (message.reference.resolved and
             isinstance(message.reference.resolved, discord.Message)):
         sender = message.reference.resolved.author.id
         if sender != client.user.id:
             # not talking to us
             return
 
-    if (not message.reference or message.reference.message_id not in process_dict):
+    if message.reference.message_id not in process_dict:
         await message.reply("No running process associated with this message.")
         return
 
